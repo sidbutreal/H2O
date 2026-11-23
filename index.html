@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#071426">
+<title>h2o</title>
+<style>
+:root{--bg:#071426;--panel:#0d2038;--panel2:#132b48;--blue:#287ac5;--text:#edf5ff;--muted:#91a6bd;--border:#1c3654}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,sans-serif;height:100vh;overflow:hidden}
+button,input{font:inherit}
+button{cursor:pointer;color:var(--text);background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:9px 13px}
+button:hover{background:#1c3c61}
+header{background:var(--panel);border-bottom:1px solid var(--border)}
+.tabs{display:flex;align-items:center;gap:7px;padding:9px;overflow-x:auto}
+.tab{min-width:105px;max-width:200px;display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;cursor:pointer}
+.tab.active{background:var(--panel2);border-color:var(--blue)}
+.tab span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.close{padding:2px 5px;border:0;background:transparent}
+.toolbar{display:flex;gap:7px;align-items:center;padding:10px}
+.address{flex:1;display:flex;background:var(--bg);border:1px solid var(--border);border-radius:12px;min-width:80px}
+.address input{width:100%;border:0;outline:0;background:transparent;color:var(--text);padding:12px}
+.address input::placeholder{color:var(--muted)}
+#browser{width:100%;height:calc(100vh - 119px);border:0;background:white}
+#home{height:calc(100vh - 119px);overflow-y:auto;text-align:center;padding:12vh 20px 40px}
+.logo{font-size:76px;font-weight:800;letter-spacing:-5px;color:#388fe8;margin-bottom:35px}
+.search{max-width:650px;margin:auto;display:flex;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:6px}
+.search input{flex:1;min-width:0;background:transparent;color:var(--text);border:0;outline:0;padding:13px}
+.search button{background:var(--blue);border:0;padding:12px 23px}
+.shortcuts{max-width:650px;margin:35px auto;display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.shortcut{padding:17px 5px;background:var(--panel);border:1px solid var(--border);border-radius:13px;color:var(--text)}
+.shortcut div{font-size:27px;margin-bottom:9px}
+.shortcut small{font-size:12px}
+.bookmarks{max-width:650px;margin:20px auto;text-align:left;background:var(--panel);padding:18px;border-radius:13px}
+.bookmarks h3{margin:0 0 12px}
+.bookmarks button{margin:4px}
+#blocked{display:none;position:absolute;inset:0;background:var(--bg);padding:45px 20px;text-align:center}
+#blocked h2{color:#388fe8}
+#blocked p{color:var(--muted);line-height:1.5}
+@media(max-width:550px){.toolbar{gap:4px;padding:7px}.toolbar button{padding:9px}.shortcuts{grid-template-columns:repeat(3,1fr)}.logo{font-size:65px}#browser,#home{height:calc(100vh - 115px)}}
+
+#chatBox{display:none;position:relative;height:calc(100vh - 119px);overflow:hidden}
+.chat{position:absolute;inset:0;display:flex;font-size:14px}
+.cgate{margin:auto;display:flex;flex-direction:column;gap:10px;width:min(320px,90%);text-align:center}
+.cgate h2{margin:0 0 6px;color:#388fe8;font-size:32px}
+.cgate input,.cform input{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px;outline:0}
+.cerr{color:#ff7b7b;min-height:18px;font-size:13px}
+button.go{background:var(--blue);border:0}
+.cside{width:210px;flex:none;border-right:1px solid var(--border);background:var(--panel);overflow-y:auto;padding:10px}
+.cmain{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 4px 6px;display:flex;justify-content:space-between}
+.chat h3 button{border:0;background:none;color:#388fe8;font-size:16px;padding:0}
+.it{padding:8px 10px;border-radius:8px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.it:hover{background:var(--panel2)}
+.it.on{background:var(--blue)}
+.it .ok,.it .no{float:right;border:0;background:none;padding:0 4px}
+.chead{padding:12px 16px;border-bottom:1px solid var(--border);font-weight:700}
+.cmsgs{flex:1;overflow-y:auto;padding:12px 16px}
+.m{margin-bottom:10px}.m b{margin-right:8px}.m i{color:var(--muted);font-size:11px;font-style:normal}
+.m div{white-space:pre-wrap;overflow-wrap:anywhere}
+.cform{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border)}
+.cform input{flex:1;min-width:0}
+.more-title{max-width:650px;margin:30px auto 0;text-align:left;color:var(--muted);font-size:13px}
+@media(max-width:550px){#chatBox{height:calc(100vh - 115px)}.cside{width:130px}}
+
+#os{position:fixed;inset:0;display:none;z-index:1;background-size:cover}
+#login{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+#login .clk{font-size:64px;font-weight:300}#login .dt{color:#dbe9ff;margin-bottom:22px}
+#login .box{background:rgba(7,20,38,.72);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:16px;padding:22px;width:min(360px,92%)}
+#login .box .cgate{margin:0;width:100%}
+#icons{position:absolute;left:10px;top:10px;display:grid;grid-template-columns:repeat(1,84px);gap:8px}
+.ico{background:transparent;border:0;color:#fff;text-shadow:0 1px 4px #000;padding:8px 2px}
+.ico:hover{background:rgba(255,255,255,.15)}.ico div{font-size:34px}.ico small{font-size:12px}
+.win{position:absolute;display:none;flex-direction:column;background:var(--bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.55);overflow:hidden;resize:both;min-width:260px;min-height:180px}
+.win.max{left:0!important;top:0!important;width:100%!important;height:calc(100% - 48px)!important;border-radius:0;resize:none}
+.wbar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--panel);cursor:grab;touch-action:none;user-select:none}
+.wbar b{flex:1;font-size:13px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.wbar button{padding:2px 9px;border-radius:6px}.wbar .x:hover{background:#c0392b}
+.wbody{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;overflow:hidden}
+.wbody #browser,.wbody #home{height:auto!important;flex:1;min-height:0}
+#task{position:absolute;left:0;right:0;bottom:0;height:48px;background:rgba(7,20,38,.92);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;padding:0 8px;z-index:9999}
+#task .tb{padding:7px 12px;max-width:150px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#task .tb.on{border-color:var(--blue);background:var(--panel2)}
+#task .sp{flex:1}#task .st{background:var(--blue);border:0;font-weight:700}
+#clock{font-size:12px;text-align:right;color:var(--muted);line-height:1.3}
+#start{display:none;position:absolute;left:8px;bottom:56px;width:260px;background:rgba(13,32,56,.97);border:1px solid var(--border);border-radius:14px;padding:10px;z-index:9999}
+#start button{display:block;width:100%;text-align:left;margin:3px 0;border:0;background:transparent}
+#start button:hover{background:var(--panel2)}
+.wps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px}
+.wps button{height:64px;border:2px solid var(--border)}.wps button.on{border-color:#fff}
+.pad{padding:16px;overflow:auto}.pad h3{margin:0 0 10px}
+textarea.note{flex:1;width:100%;background:var(--panel);color:var(--text);border:0;outline:0;padding:14px;resize:none;font:inherit}
+</style>
+</head>
+<body>
+<header>
+  <div class="tabs" id="tabs"></div>
+  <div class="toolbar">
+    <button onclick="goBack()" aria-label="Back">←</button>
+    <button onclick="goForward()" aria-label="Forward">→</button>
+    <button onclick="reloadPage()" aria-label="Reload">↻</button>
+    <button onclick="goHome()" aria-label="Home">⌂</button>
+    <div class="address"><input id="url" placeholder="Search or type a web address" onkeydown="if(event.key==='Enter')navigate(this.value)"></div>
+    <button onclick="addBookmark()" aria-label="Bookmark">☆</button>
+    <button onclick="openExternal()" aria-label="Open externally">↗</button>
+    <button onclick="newTab()" aria-label="New tab">＋</button>
+  </div>
+</header>
+
+<div id="home">
+  <div class="logo">h2o</div>
+  <div class="search">
+    <input id="homeSearch" placeholder="Search the web..." onkeydown="if(event.key==='Enter')navigate(this.value)">
+    <button onclick="navigate(document.getElementById('homeSearch').value)">Go</button>
+  </div>
+  <div class="shortcuts">
+    <button class="shortcut" onclick="navigate('h2o:chat')"><div>💬</div><small>h2o chat</small></button>
+    <button class="shortcut" onclick="navigate('https://www.google.com')"><div>🌐</div><small>Google</small></button>
+    <button class="shortcut" onclick="navigate('https://www.youtube.com')"><div>▶️</div><small>YouTube</small></button>
+    <button class="shortcut" onclick="navigate('https://www.wikipedia.org')"><div>W</div><small>Wikipedia</small></button>
+    <button class="shortcut" onclick="navigate('https://lichess.org')"><div>♞</div><small>Lichess</small></button>
+    <button class="shortcut" onclick="navigate('https://maps.google.com')"><div>📍</div><small>Maps</small></button>
+    <button class="shortcut" onclick="navigate('https://mail.google.com')"><div>✉️</div><small>Gmail</small></button>
+    <button class="shortcut" onclick="navigate('https://drive.google.com')"><div>📁</div><small>Drive</small></button>
+    <button class="shortcut" onclick="navigate('https://photos.google.com')"><div>🖼️</div><small>Photos</small></button>
+    <button class="shortcut" onclick="navigate('https://calendar.google.com')"><div>📅</div><small>Calendar</small></button>
+    <button class="shortcut" onclick="navigate('https://translate.google.com')"><div>文</div><small>Translate</small></button>
+    <button class="shortcut" onclick="navigate('https://chatgpt.com')"><div>💬</div><small>ChatGPT</small></button>
+  </div>
+  <div class="more-title">72 more</div>
+  <div class="shortcuts" id="moreShortcuts"></div>
+  <div class="bookmarks"><h3>Bookmarks</h3><div id="bookmarkList"></div></div>
+</div>
+
+<div id="chatBox"></div>
+<iframe id="browser" title="H2O webpage" style="display:none" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+<div id="blocked">
+  <h2>This site may not display here</h2>
+  <p>Some websites block being shown inside another website. You can open this page in a new browser tab instead.</p>
+  <button onclick="openExternal()">Open website externally</button>
+</div>
+
+<script>
+let tabs=[];
+let active=0;
+const home=document.getElementById('home');
+const browser=document.getElementById('browser');
+const urlInput=document.getElementById('url');
+const blocked=document.getElementById('blocked');
+const chatBox=document.getElementById('chatBox');
+
+function makeTab(){return {url:'',title:'New Tab',history:[],position:-1};}
+function current(){return tabs[active];}
+
+function renderTabs(){
+  const container=document.getElementById('tabs');
+  container.innerHTML='';
+  tabs.forEach((tab,i)=>{
+    const el=document.createElement('div');
+    el.className='tab'+(i===active?' active':'');
+    const name=document.createElement('span');
+    name.textContent=tab.title;
+    const close=document.createElement('button');
+    close.className='close';close.textContent='×';close.setAttribute('aria-label','Close tab');
+    close.onclick=e=>{e.stopPropagation();closeTab(i);};
+    el.append(name,close);
+    el.onclick=()=>switchTab(i);
+    container.appendChild(el);
+  });
+}
+
+function displayPage(){
+  const tab=current();
+  renderTabs();
+  urlInput.value=tab.url;
+  blocked.style.display='none';
+  chatBox.style.display='none';
+  if(!tab.url){home.style.display='block';browser.style.display='none';}
+  else if(tab.url==='h2o:chat'){home.style.display='none';browser.style.display='none';chatBox.style.display='block';mountChat(chatBox);}
+  else{home.style.display='none';browser.style.display='block';browser.src=tab.url;}
+}
+function newTab(){tabs.push(makeTab());active=tabs.length-1;displayPage();}
+function switchTab(i){active=i;displayPage();}
+function closeTab(i){
+  if(tabs.length===1){tabs[0]=makeTab();active=0;}
+  else{tabs.splice(i,1);if(active>=tabs.length)active=tabs.length-1;else if(i<active)active--;}
+  displayPage();
+}
+function normalize(input){
+  input=input.trim();
+  if(!input)return '';if(input==='h2o:chat')return input;
+  if(/^https?:\/\//i.test(input))return input;
+  if(/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/i.test(input))return 'https://'+input;
+  return 'https://www.google.com/search?q='+encodeURIComponent(input);
+}
+function navigate(input){if(input==='h2o:chat'){openApp('chat');return;}
+  const destination=normalize(input);
+  if(!destination)return;
+  const tab=current();
+  tab.history=tab.history.slice(0,tab.position+1);
+  tab.history.push(destination);tab.position++;
+  tab.url=destination;
+  try{tab.title=new URL(destination).hostname;}catch{tab.title='New Tab';}
+  if(destination==='h2o:chat')tab.title='Chat';
+  displayPage();
+}
+function goBack(){
+  const tab=current();
+  if(tab.position>0){tab.position--;tab.url=tab.history[tab.position];displayPage();}
+  else if(tab.url)goHome();
+}
+function goForward(){
+  const tab=current();
+  if(tab.position<tab.history.length-1){tab.position++;tab.url=tab.history[tab.position];displayPage();}
+}
+function reloadPage(){const u=current().url;if(u==='h2o:chat')mountChat(chatBox);else if(u)browser.src=u;}
+function goHome(){current().url='';current().title='New Tab';displayPage();}
+function openExternal(){if(current().url&&current().url!=='h2o:chat')window.open(current().url,'_blank','noopener,noreferrer');}
+
+function getBookmarks(){
+  try{return JSON.parse(localStorage.getItem('h2o-bookmarks')||'[]');}
+  catch{return [];}
+}
+function addBookmark(){
+  const url=current().url;
+  if(!url)return;
+  const list=getBookmarks();
+  if(!list.includes(url)){list.push(url);localStorage.setItem('h2o-bookmarks',JSON.stringify(list));renderBookmarks();}
+}
+function renderBookmarks(){
+  const list=document.getElementById('bookmarkList');
+  list.innerHTML='';
+  getBookmarks().forEach(url=>{
+    const button=document.createElement('button');
+    if(url==='h2o:chat')button.textContent='Chat';else try{button.textContent=new URL(url).hostname;}catch{button.textContent=url;}
+    button.onclick=()=>navigate(url);
+    list.appendChild(button);
+  });
+}
+browser.addEventListener('error',()=>{blocked.style.display='block';});
+/* GitHub Pages-compatible chat placeholder.
+   Claude's claude.use('db') API is not available on GitHub Pages.
+   Connect a real backend before enabling shared accounts or public messages.
+*/
+var chatSt={me:null,db:null,unsubs:[],cur:null,servers:[],rin:[],rout:[]};
+function chatKill(){chatSt.unsubs.forEach(function(u){try{u()}catch(e){}});chatSt.unsubs=[]}
+function E(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function mountChat(box){
+  chatKill();
+  box.innerHTML='';
+  var root=E('div','chat');
+  box.appendChild(root);
+  var side=E('div','cside');
+  var main=E('div','cmain');
+  root.append(side,main);
+  side.appendChild(E('h3',null,'h2chat'));
+  side.appendChild(E('div','it on','Public chat'));
+  side.appendChild(E('div','it','Servers and friends'));
+  side.appendChild(E('div','it','Coming soon'));
+  main.appendChild(E('div','chead','h2chat'));
+  var msgs=E('div','cmsgs');
+  msgs.appendChild(E('p',null,'Your Claude version uses a private Claude database API. GitHub Pages cannot access that API.'));
+  msgs.appendChild(E('p',null,'The H2O interface is ready, but shared accounts, servers, friends and messages need a supported backend such as Supabase or Firebase.'));
+  msgs.appendChild(E('p',null,'This version does not send or store public chat messages.'));
+  main.appendChild(msgs);
+  var form=E('div','cform');
+  var info=E('input');info.disabled=true;info.placeholder='Chat backend connection required';
+  var send=E('button','go','Not connected');send.disabled=true;
+  form.append(info,send);main.appendChild(form);
+}
+const MORE=[["🔎", "Bing", "https://www.bing.com"], ["🦆", "DuckDuckGo", "https://duckduckgo.com"], ["🦁", "Brave Search", "https://search.brave.com"], ["🧮", "Wolfram Alpha", "https://www.wolframalpha.com"], ["📚", "Wiktionary", "https://www.wiktionary.org"], ["📘", "Britannica", "https://www.britannica.com"], ["🏛️", "Internet Archive", "https://archive.org"], ["🎓", "Scholar", "https://scholar.google.com"], ["📰", "Google News", "https://news.google.com"], ["🖼️", "Images", "https://images.google.com"], ["📄", "Docs", "https://docs.google.com"], ["📊", "Sheets", "https://sheets.google.com"], ["📽️", "Slides", "https://slides.google.com"], ["🎥", "Meet", "https://meet.google.com"], ["🌍", "Earth", "https://earth.google.com"], ["📝", "Keep", "https://keep.google.com"], ["🏫", "Classroom", "https://classroom.google.com"], ["🤖", "Claude", "https://claude.ai"], ["✨", "Gemini", "https://gemini.google.com"], ["🧠", "Perplexity", "https://www.perplexity.ai"], ["👽", "Reddit", "https://www.reddit.com"], ["✖️", "X", "https://x.com"], ["📸", "Instagram", "https://www.instagram.com"], ["👍", "Facebook", "https://www.facebook.com"], ["🎵", "TikTok", "https://www.tiktok.com"], ["💼", "LinkedIn", "https://www.linkedin.com"], ["📌", "Pinterest", "https://www.pinterest.com"], ["🎮", "Discord", "https://discord.com"], ["📱", "WhatsApp", "https://web.whatsapp.com"], ["✈️", "Telegram", "https://web.telegram.org"], ["🟣", "Twitch", "https://www.twitch.tv"], ["🎬", "Netflix", "https://www.netflix.com"], ["🎧", "Spotify", "https://open.spotify.com"], ["☁️", "SoundCloud", "https://soundcloud.com"], ["🏰", "Disney+", "https://www.disneyplus.com"], ["📺", "Prime Video", "https://www.primevideo.com"], ["🎞️", "IMDb", "https://www.imdb.com"], ["📦", "Amazon", "https://www.amazon.com"], ["🛒", "eBay", "https://www.ebay.com"], ["🧶", "Etsy", "https://www.etsy.com"], ["🏬", "Walmart", "https://www.walmart.com"], ["🔌", "Best Buy", "https://www.bestbuy.com"], ["🐙", "GitHub", "https://github.com"], ["💡", "Stack Overflow", "https://stackoverflow.com"], ["✏️", "CodePen", "https://codepen.io"], ["⚙️", "Replit", "https://replit.com"], ["🦊", "MDN", "https://developer.mozilla.org"], ["🌐", "W3Schools", "https://www.w3schools.com"], ["🧑‍🏫", "Khan Academy", "https://www.khanacademy.org"], ["🦉", "Duolingo", "https://www.duolingo.com"], ["🎒", "Coursera", "https://www.coursera.org"], ["🗂️", "Quizlet", "https://quizlet.com"], ["📈", "Desmos", "https://www.desmos.com/calculator"], ["♟️", "Chess.com", "https://www.chess.com"], ["🕹️", "Poki", "https://poki.com"], ["⛅", "Weather", "https://weather.com"], ["🗞️", "BBC News", "https://www.bbc.com/news"], ["🍁", "CBC News", "https://www.cbc.ca/news"], ["📡", "Reuters", "https://www.reuters.com"], ["📣", "AP News", "https://apnews.com"], ["🏀", "ESPN", "https://www.espn.com"], ["🎨", "Canva", "https://www.canva.com"], ["🖌️", "Figma", "https://www.figma.com"], ["🗒️", "Notion", "https://www.notion.so"], ["📋", "Trello", "https://trello.com"], ["📥", "Dropbox", "https://www.dropbox.com"], ["📧", "Outlook", "https://outlook.live.com"], ["🟪", "Yahoo", "https://www.yahoo.com"], ["📹", "Zoom", "https://zoom.us"], ["⚡", "Speedtest", "https://www.speedtest.net"], ["🗺️", "OpenStreetMap", "https://www.openstreetmap.org"]];
+MORE.forEach(m=>{const b=document.createElement('button');b.className='shortcut';const d=document.createElement('div');d.textContent=m[0];const t=document.createElement('small');t.textContent=m[1];b.append(d,t);b.onclick=()=>navigate(m[2]);document.getElementById('moreShortcuts').appendChild(b);});
+newTab();
+renderBookmarks();
+
+/* ===== h2o OS ===== */
+var onAuthed;
+const WP=[['Aqua','linear-gradient(135deg,#0b3a63,#1c7ed6 55%,#6cc3ff)'],['Night','linear-gradient(160deg,#050b18,#12284a)'],['Sunset','linear-gradient(135deg,#2b1055,#d4506f 60%,#f6a56a)'],['Forest','linear-gradient(135deg,#0b2b1e,#1f7a4d)'],['Graphite','linear-gradient(135deg,#1b1b1f,#3a3a44)'],['Candy','linear-gradient(135deg,#7b2ff7,#f107a3)']];
+function mk(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+const osEl=mk('div');osEl.id='os';
+const icons=mk('div');icons.id='icons';
+const wins=mk('div');wins.id='wins';
+const task=mk('div');task.id='task';
+const startM=mk('div');startM.id='start';
+const lg=mk('div');lg.id='login';
+osEl.append(icons,wins,startM,task);document.body.append(osEl,lg);
+let zTop=10,opened=0;const W={};
+function wpIdx(){let i=0;try{i=+localStorage.getItem('h2o_wp')||0}catch(e){}return WP[i]?i:0}
+function applyWp(){const g=WP[wpIdx()][1];osEl.style.background=g;lg.style.background=g}
+function clockTxt(){const d=new Date();return [d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'})]}
+function tick(){const c=clockTxt();const a=document.getElementById('clock');if(a)a.textContent=c[0];const b=lg.querySelector('.clk');if(b){b.textContent=c[0];lg.querySelector('.dt').textContent=c[1]}}
+setInterval(tick,15000);
+function focusW(id){zTop++;W[id].el.style.zIndex=zTop;W.cur=id;drawTask()}
+function openApp(id){
+  const w=W[id];if(!w)return;
+  if(!w.built){w.built=true;w.init(w.body)}
+  if(!w.open){w.open=true;if(w.reopen)w.reopen(w.body)}
+  w.el.style.display='flex';startM.style.display='none';focusW(id);
+}
+function closeW(id){const w=W[id];w.open=false;w.el.style.display='none';if(w.onClose)w.onClose();drawTask()}
+function addApp(id,title,icon,wd,ht,init,extra){
+  const el=mk('div','win');el.style.width=wd+'px';el.style.height=ht+'px';
+  el.style.left=(60+opened*30)+'px';el.style.top=(24+opened*30)+'px';opened++;
+  if(innerWidth<700)el.classList.add('max');
+  const bar=mk('div','wbar');bar.append(mk('span',null,icon),mk('b',null,title));
+  const mn=mk('button',null,'–'),mx=mk('button',null,'□'),x=mk('button','x','×');
+  mn.setAttribute('aria-label','Minimize');mx.setAttribute('aria-label','Maximize');x.setAttribute('aria-label','Close');
+  bar.append(mn,mx,x);const body=mk('div','wbody');el.append(bar,body);wins.appendChild(el);
+  W[id]=Object.assign({el:el,body:body,title:title,icon:icon,init:init,open:false,built:false},extra||{});
+  el.addEventListener('pointerdown',()=>focusW(id));
+  mn.onclick=()=>{el.style.display='none';W[id].min=true;drawTask()};
+  mx.onclick=()=>el.classList.toggle('max');
+  x.onclick=()=>closeW(id);
+  bar.onpointerdown=e=>{
+    if(e.target.tagName==='BUTTON'||el.classList.contains('max'))return;
+    const ox=e.clientX-el.offsetLeft,oy=e.clientY-el.offsetTop;bar.setPointerCapture(e.pointerId);
+    bar.onpointermove=m=>{el.style.left=Math.max(0,m.clientX-ox)+'px';el.style.top=Math.max(0,m.clientY-oy)+'px'};
+    bar.onpointerup=()=>{bar.onpointermove=null;bar.onpointerup=null};
+  };
+  const ic=mk('button','ico');ic.append(mk('div',null,icon),mk('small',null,title));ic.onclick=()=>openApp(id);icons.appendChild(ic);
+}
+function drawTask(){
+  task.innerHTML='';
+  const st=mk('button','st','⊞ h2o');st.onclick=()=>{startM.style.display=startM.style.display==='block'?'none':'block'};task.appendChild(st);
+  Object.keys(W).forEach(id=>{if(id==='cur')return;const w=W[id];if(!w.open)return;
+    const b=mk('button','tb'+(W.cur===id&&w.el.style.display!=='none'?' on':''),w.icon+' '+w.title);
+    b.onclick=()=>{if(w.el.style.display==='none'||W.cur!==id){w.el.style.display='flex';focusW(id)}else{w.el.style.display='none';drawTask()}};
+    task.appendChild(b)});
+  task.appendChild(mk('div','sp'));
+  task.appendChild(mk('span',null,chatSt.me||''));
+  const c=mk('div');c.id='clock';c.textContent=clockTxt()[0];task.appendChild(c);
+}
+function drawStart(){
+  startM.innerHTML='';
+  Object.keys(W).forEach(id=>{if(id==='cur')return;const b=mk('button',null,W[id].icon+'  '+W[id].title);b.onclick=()=>openApp(id);startM.appendChild(b)});
+  const o=mk('button',null,'⏻  Log out');o.onclick=()=>osLogout();startM.appendChild(o);
+}
+/* apps */
+addApp('browser','Browser','🌐',920,600,b=>{
+  ['header','home','browser','blocked'].forEach(i=>{const n=i==='header'?document.querySelector('header'):document.getElementById(i);b.appendChild(n)});
+  document.getElementById('browser').style.display=current().url?'block':'none';
+});
+addApp('chat','Chat','💬',860,560,b=>{},{reopen:b=>mountChat(b),onClose:()=>chatKill()});
+addApp('notes','Notes','📝',420,360,b=>{
+  const t=mk('textarea','note');t.placeholder='Type here…';const k='h2o_notes_'+chatSt.me;
+  try{t.value=localStorage.getItem(k)||''}catch(e){}
+  t.oninput=()=>{try{localStorage.setItem(k,t.value)}catch(e){}};b.appendChild(t);
+});
+addApp('settings','Settings','⚙️',420,380,b=>{
+  b.innerHTML='';const p=mk('div','pad');p.appendChild(mk('h3',null,'Wallpaper'));
+  const g=mk('div','wps');
+  WP.forEach((w,i)=>{const x=mk('button',i===wpIdx()?'on':null);x.style.background=w[1];x.title=w[0];
+    x.onclick=()=>{try{localStorage.setItem('h2o_wp',i)}catch(e){}applyWp();g.querySelectorAll('button').forEach((y,j)=>y.className=j===i?'on':'')};g.appendChild(x)});
+  p.append(g,mk('p',null,'Signed in as '+(chatSt.me||'')));
+  const lo=mk('button',null,'Log out');lo.onclick=()=>osLogout();p.appendChild(lo);b.appendChild(p);
+},{reopen:null});
+/* login / logout */
+async function showLogin(){
+  osEl.style.display='none';lg.style.display='flex';lg.innerHTML='';
+  lg.append(mk('div','clk'),mk('div','dt'));tick();
+  const box=mk('div','box');lg.appendChild(box);
+  const gate=mk('div','cgate');
+  gate.appendChild(mk('h2',null,'Welcome to h2o'));
+  gate.appendChild(mk('p',null,'Choose a display name for this device.'));
+  const name=mk('input');name.placeholder='Display name';name.maxLength=20;
+  name.autocomplete='nickname';
+  const error=mk('div','cerr');
+  const enter=mk('button','go','Enter H2O');
+  enter.onclick=function(){
+    const value=name.value.trim().replace(/[<>]/g,'').slice(0,20);
+    if(value.length<2){error.textContent='Enter at least 2 characters.';return;}
+    chatSt.me=value;
+    try{localStorage.setItem('h2o-display-name',value)}catch(e){}
+    onAuthed();
+  };
+  name.addEventListener('keydown',function(e){if(e.key==='Enter')enter.click()});
+  try{name.value=localStorage.getItem('h2o-display-name')||''}catch(e){}
+  gate.append(name,error,enter);
+  box.appendChild(gate);
+}
+onAuthed=function(){
+  lg.style.display='none';osEl.style.display='block';applyWp();
+  const sw=W.settings;sw.built=false;sw.body.innerHTML='';
+  const nt=W.notes;nt.built=false;nt.body.innerHTML='';
+  drawStart();drawTask();
+};
+function osLogout(){
+  chatKill();chatSt.me=null;chatSt.cur=null;
+  Object.keys(W).forEach(id=>{if(id==='cur')return;W[id].open=false;W[id].el.style.display='none'});
+  startM.style.display='none';showLogin();
+}
+applyWp();showLogin();
+
+</script>
+</body>
+</html>
